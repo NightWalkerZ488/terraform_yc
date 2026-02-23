@@ -110,4 +110,13 @@
 
 ### Выполнение:
 
-1. 
+1. Создаём файл "tfvars" для переменных идентификатора облака и указания местоположения сервисного ключа. Содеожимое "tfvars":
+```
+service_account_key_file = "./key.json"
+vms_ssh_root_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOz3h9ny7Wirov8wtkZALj7lLuX54oVhbUMR4k/ipEG8"
+
+# Идентификаторы облака и каталога
+cloud_id   = "b1gp5iseea83eetg54kq"
+folder_id  = "b1g4a0dfb0lknirfbma8"
+
+```
