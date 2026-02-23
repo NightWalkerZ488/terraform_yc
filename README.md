@@ -110,7 +110,8 @@
 
 ### Выполнение:
 
-1. Проверяем variables.tf. service_account_key_file по умолчанию указывает на ~/.authorized_key.json 
+1. Проверяем variables.tf: не объявлена переменна, которая указана в "provides" - service_account_key_file = file("~/.authorized_key.json"). По умолчанию указание на ~/.authorized_key.json
+Исправляем, указывая на переменную - "service_account_key_file = var.service_account_key_file".  
 Создаём файл "tfvars" для переменных идентификатора облака и указания местоположения сервисного ключа. Содеожимое "tfvars":
 ```
 service_account_key_file = "./key.json"
