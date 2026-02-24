@@ -174,3 +174,19 @@ resource "yandex_compute_instance" "platform" {
 
 Опция "preemptible = true" создаёт прерываемую ВМ. Это значительно дешевле, но машина может быть остановлена системой через 24часа. Опция "core_fraction = 5" ограничивает гарантированную долю CPU 5% от ядра. Это дешевле + позволяет запускать несколько виртуалок в рамках гранта.
 
+Запускаем terraform и назначаем внешний ip для виртуальной машины:
+
+![terraformrun](https://github.com/NightWalkerZ488/terraform_yc/blob/main/terraapply.png)
+
+Подключаемся по ssh и смотрим ip:
+
+![terraformrun](https://github.com/NightWalkerZ488/terraform_yc/blob/main/getipssh.png)
+
+Виртуалка в личном кабинете "Яндекса":
+
+![terraformrun](https://github.com/NightWalkerZ488/terraform_yc/blob/main/yaclonet.png)
+
+
+### Задлание 2.Выполнение:
+
+
