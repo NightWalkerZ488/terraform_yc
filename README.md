@@ -293,4 +293,206 @@ resource "yandex_compute_instance" "platform" {
 
 ![plan](https://github.com/NightWalkerZ488/terraform_yc/blob/main/plan.png)
 
-3. 
+### Задание 3. Выполнение:
+
+Создаём файл vms_platform.tf :
+
+```
+### vm_web vars
+
+variable "vm_web_image_family" {
+  type        = string
+  default     = "ubuntu-2004-lts"
+  description = "Family of the VM image"
+}
+
+variable "vm_web_name" {
+  type        = string
+  default     = "netology-develop-platform-web"
+  description = "Name of the web VM instance"
+}
+
+variable "vm_web_platform_id" {
+  type        = string
+  default     = "standard-v1"
+  description = "Platform ID for the web VM"
+}
+
+variable "vm_web_cores" {
+  type        = number
+  default     = 2
+  description = "Number of CPU cores for web VM"
+}
+
+variable "vm_web_memory" {
+  type        = number
+  default     = 1
+  description = "RAM in GB for web VM"
+}
+
+variable "vm_web_core_fraction" {
+  type        = number
+  default     = 5
+  description = "Guaranteed CPU fraction (%) for web VM"
+}
+
+variable "vm_web_preemptible" {
+  type        = bool
+  default     = true
+  description = "Create preemptible web VM"
+}
+
+### vm_db vars
+
+variable "vm_db_image_family" {
+  type        = string
+  default     = "ubuntu-2004-lts"
+  description = "Family of the DB VM image"
+}
+
+variable "vm_db_name" {
+  type        = string
+  default     = "netology-develop-platform-db"
+  description = "Name of the DB VM instance"
+}
+
+variable "vm_db_platform_id" {
+  type        = string
+  default     = "standard-v1"
+  description = "Platform ID for the DB VM"
+}
+
+variable "vm_db_cores" {
+  type        = number
+  default     = 2
+  description = "Number of CPU cores for DB VM"
+}
+
+variable "vm_db_memory" {
+  type        = number
+  default     = 2
+  description = "RAM in GB for DB VM"
+}
+
+variable "vm_db_core_fraction" {
+  type        = number
+  default     = 20
+  description = "Guaranteed CPU fraction (%) for DB VM"
+}
+
+variable "vm_db_preemptible" {
+  type        = bool
+  default     = true
+  description = "Create preemptible DB VM"
+}
+
+variable "vm_db_zone" {
+  type        = string
+  default     = "ru-central1-b"
+  description = "Zone for DB VM"
+}
+
+```
+Далее, необходимо в variables.tf удалить все переменные с префиксом "vm_web_".
+После этого в main.tf после первой подсети добавляем вторую:
+
+```
+resource "yandex_vpc_subnet" "develop_b" {
+  name           = "${var.vpc_name}-b"
+  zone           = "ru-central1-b"
+  network_id     = yandex_vpc_network.develop.id
+  v4_cidr_blocks = ["10.0.2.0/24"]
+}
+```
+Итоговый main.tf с добавленной подсетью и виртуалкой:
+
+```
+resource "yandex_vpc_network" "develop" {
+  name = var.vpc_name
+}
+resource "yandex_vpc_subnet" "develop" {
+  name           = var.vpc_name
+  zone           = var.default_zone
+  network_id     = yandex_vpc_network.develop.id
+  v4_cidr_blocks = var.default_cidr
+}
+# Вторая подсеть
+resource "yandex_vpc_subnet" "develop_b" {
+  name           = "${var.vpc_name}-b"
+  zone           = "ru-central1-b"
+  network_id     = yandex_vpc_network.develop.id
+  v4_cidr_blocks = ["10.0.2.0/24"]
+}
+
+data "yandex_compute_image" "ubuntu" {
+  family = var.vm_web_image_family
+}
+resource "yandex_compute_instance" "platform" {
+  name        = var.vm_web_name
+  platform_id = var.vm_web_platform_id
+  resources {
+    cores         = var.vm_web_cores
+    memory        = var.vm_web_memory
+    core_fraction = var.vm_web_core_fraction
+  }
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu.image_id
+    }
+  }
+  scheduling_policy {
+    preemptible = var.vm_web_preemptible
+  }
+  network_interface {
+    subnet_id = yandex_vpc_subnet.develop.id
+    nat       = true
+  }
+
+  metadata = {
+    serial-port-enable = 1
+    ssh-keys           = "ubuntu:${var.vms_ssh_root_key}"
+  }
+
+}
+
+#Вторя ВМ
+
+resource "yandex_compute_instance" "platform_db" {
+  name        = var.vm_db_name
+  platform_id = var.vm_db_platform_id
+  zone        = var.vm_db_zone  # ← Критически важно: указываем зону!
+
+  resources {
+    cores         = var.vm_db_cores
+    memory        = var.vm_db_memory
+    core_fraction = var.vm_db_core_fraction
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu.image_id
+    }
+  }
+
+  scheduling_policy {
+    preemptible = var.vm_db_preemptible
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.develop_b.id  # ← Используем вторую подсеть!
+    nat       = true
+  }
+
+  metadata = {
+    serial-port-enable = 1
+    ssh-keys           = "ubuntu:${var.vms_ssh_root_key}"
+  }
+}
+
+```
+Применяем изменения и видим успешно созданные 2 ресурса - виртуалка и подсеть:
+
+![newres](https://github.com/NightWalkerZ488/terraform_yc/blob/main/newvm.png)
+
+### Задание 4. Выполнение:
+
