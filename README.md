@@ -496,7 +496,28 @@ resource "yandex_compute_instance" "platform_db" {
 
 ### Задание 4. Выполнение:
 
-В файле outputs.tf объявляем нужные выходы, после применения получаем вывод:
+В файле outputs.tf объявляем outputs:
+
+```
+output "vms_info" {
+  description = "Information about all VMs (web and db)"
+  value = {
+    web = {
+      instance_name = yandex_compute_instance.platform.name
+      external_ip   = yandex_compute_instance.platform.network_interface[0].nat_ip_address
+      fqdn          = yandex_compute_instance.platform.fqdn
+    }
+    db = {
+      instance_name = yandex_compute_instance.platform_db.name
+      external_ip   = yandex_compute_instance.platform_db.network_interface[0].nat_ip_address
+      fqdn          = yandex_compute_instance.platform_db.fqdn
+    }
+  }
+  sensitive = false  # Чтобы значения отображались в выводе
+}
+```
+
+После применения получаем вывод:
 
 ```
 anna@ASUSLaptop:~/terraform-hw/02$ terraform output vms_info
@@ -515,3 +536,248 @@ anna@ASUSLaptop:~/terraform-hw/02$ terraform output vms_info
 
 ### Задание 5. Выполнение:
 
+В locals.tf добавляем:
+
+```
+locals {
+  # Составное имя для веб-сервера:
+  web_vm_name = "netology-${var.vpc_name}-platform-web-${var.default_zone}"
+
+  # Составное имя для БД: 
+  db_vm_name = "netology-${var.vpc_name}-platform-db-${var.vm_db_zone}"
+}
+```
+
+В main.tf изменяем строки: "name = var.vm_web_name" на "name = local.db_vm_name", "name = var.vm_db_name" на "name = local.db_vm_name". Применяем и проверяем:
+
+![info](https://github.com/NightWalkerZ488/terraform_yc/blob/main/multi.png)
+
+### Задание 6. Выполнение:
+
+Объединяем переменные в единую map-переменную в vms_platform.tf и закомментируем неиспользуемые переменные:
+
+```
+### vm_web vars
+
+variable "vm_web_image_family" {
+  type        = string
+  default     = "ubuntu-2004-lts"
+  description = "Family of the VM image"
+}
+
+#variable "vm_web_name" {
+#  type        = string
+#  default     = "netology-develop-platform-web"
+#  description = "Name of the web VM instance"
+#}
+
+variable "vm_web_platform_id" {
+  type        = string
+  default     = "standard-v1"
+  description = "Platform ID for the web VM"
+}
+
+#variable "vm_web_cores" {
+#  type        = number
+#  default     = 2
+#  description = "Number of CPU cores for web VM"
+#}
+#
+#variable "vm_web_memory" {
+#  type        = number
+#  default     = 1
+#  description = "RAM in GB for web VM"
+#}
+#
+#variable "vm_web_core_fraction" {
+#  type        = number
+#  default     = 5
+#  description = "Guaranteed CPU fraction (%) for web VM"
+#}
+
+variable "vm_web_preemptible" {
+  type        = bool
+  default     = true
+  description = "Create preemptible web VM"
+}
+
+### vm_db vars
+
+variable "vm_db_image_family" {
+  type        = string
+  default     = "ubuntu-2004-lts"
+  description = "Family of the DB VM image"
+}
+
+#variable "vm_db_name" {
+#  type        = string
+#  default     = "netology-develop-platform-db"
+#  description = "Name of the DB VM instance"
+#}
+
+variable "vm_db_platform_id" {
+  type        = string
+  default     = "standard-v1"
+  description = "Platform ID for the DB VM"
+}
+
+#variable "vm_db_cores" {
+#  type        = number
+#  default     = 2
+#  description = "Number of CPU cores for DB VM"
+#}
+#
+#variable "vm_db_memory" {
+#  type        = number
+#  default     = 2
+#  description = "RAM in GB for DB VM"
+#}
+#
+#variable "vm_db_core_fraction" {
+#  type        = number
+#  default     = 20
+#  description = "Guaranteed CPU fraction (%) for DB VM"
+#}
+
+variable "vm_db_preemptible" {
+  type        = bool
+  default     = true
+  description = "Create preemptible DB VM"
+}
+
+variable "vm_db_zone" {
+  type        = string
+  default     = "ru-central1-b"
+  description = "Zone for DB VM"
+}
+
+## vm resources
+
+variable "vms_resources" {
+  type = map(object({
+    cores         = number
+    memory        = number
+    core_fraction = number
+    hdd_size      = number
+    hdd_type      = string
+  }))
+  default = {
+    web = {
+      cores         = 2
+      memory        = 1
+      core_fraction = 5
+      hdd_size      = 10
+      hdd_type      = "network-hdd"
+    }
+    db = {
+      cores         = 2
+      memory        = 2
+      core_fraction = 20
+      hdd_size      = 10
+      hdd_type      = "network-ssd"
+    }
+  }
+  description = "Resources configuration for all VMs"
+}
+
+#variable "vms_metadata" {
+#  type = map(string)
+#  default = {
+#    serial-port-enable = "1"
+#    ssh-keys           = "ubuntu:${var.vms_ssh_root_key}"
+#  }
+#  description = "Common metadata for all VMs"
+#}
+
+```
+
+Итоговый main.tf:
+
+```
+resource "yandex_vpc_network" "develop" {
+  name = var.vpc_name
+}
+resource "yandex_vpc_subnet" "develop" {
+  name           = var.vpc_name
+  zone           = var.default_zone
+  network_id     = yandex_vpc_network.develop.id
+  v4_cidr_blocks = var.default_cidr
+}
+# Вторая подсеть
+resource "yandex_vpc_subnet" "develop_b" {
+  name           = "${var.vpc_name}-b"
+  zone           = "ru-central1-b"
+  network_id     = yandex_vpc_network.develop.id
+  v4_cidr_blocks = ["10.0.2.0/24"]
+}
+
+data "yandex_compute_image" "ubuntu" {
+  family = var.vm_web_image_family
+}
+resource "yandex_compute_instance" "platform" {
+  name        = local.web_vm_name
+  platform_id = var.vm_web_platform_id
+
+  resources {
+    cores         = var.vms_resources["web"].cores
+    memory        = var.vms_resources["web"].memory
+    core_fraction = var.vms_resources["web"].core_fraction
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu.image_id
+      size     = var.vms_resources["web"].hdd_size
+      type     = var.vms_resources["web"].hdd_type
+    }
+  }
+
+  scheduling_policy {
+    preemptible = var.vm_web_preemptible
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.develop.id
+    nat       = true
+  }
+
+  metadata = local.vms_metadata
+}
+
+#Вторя ВМ
+
+resource "yandex_compute_instance" "platform_db" {
+  name        = local.db_vm_name
+  platform_id = var.vm_db_platform_id
+  zone        = var.vm_db_zone
+
+  resources {
+    cores         = var.vms_resources["db"].cores
+    memory        = var.vms_resources["db"].memory
+    core_fraction = var.vms_resources["db"].core_fraction
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu.image_id
+      size     = var.vms_resources["db"].hdd_size
+      type     = var.vms_resources["db"].hdd_type
+    }
+  }
+
+  scheduling_policy {
+    preemptible = var.vm_db_preemptible
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.develop_b.id
+    nat       = true
+  }
+
+  metadata = local.vms_metadata
+}
+
+```
+Применяем и смотрим terraform plan:
+
+![final](https://github.com/NightWalkerZ488/terraform_yc/blob/main/final.png)
