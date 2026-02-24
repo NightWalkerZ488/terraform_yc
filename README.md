@@ -496,3 +496,22 @@ resource "yandex_compute_instance" "platform_db" {
 
 ### Задание 4. Выполнение:
 
+В файле outputs.tf объявляем нужные выходы, после применения получаем вывод:
+
+```
+anna@ASUSLaptop:~/terraform-hw/02$ terraform output vms_info
+{
+  "db" = {
+    "external_ip" = "158.160.29.18"
+    "fqdn" = "epdcnbeo81nmj9cli8uj.auto.internal"
+    "instance_name" = "netology-develop-platform-db"
+  }
+  "web" = {
+    "external_ip" = "62.84.115.13"
+    "fqdn" = "fhmgvvegb4pdc34st73q.auto.internal"
+    "instance_name" = "netology-develop-platform-web"
+
+```
+
+### Задание 5. Выполнение:
+
