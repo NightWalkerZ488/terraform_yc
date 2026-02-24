@@ -108,7 +108,9 @@
 
 ------
 
-### Выполнение:
+_______________________________________________________________________________________________________________________________________________________________________________________
+
+### Задание 1. Выполнение:
 
 1. Проверяем variables.tf: не объявлена переменна, которая указана в "provides" - service_account_key_file = file("~/.authorized_key.json"). По умолчанию указание на ~/.authorized_key.json
 Исправляем, указывая на переменную - "service_account_key_file = var.service_account_key_file".  
@@ -187,6 +189,8 @@ resource "yandex_compute_instance" "platform" {
 ![terraformrun](https://github.com/NightWalkerZ488/terraform_yc/blob/main/yaclonet.png)
 
 
-### Задлание 2.Выполнение:
+### Задаание 2. Выполнение:
+
+
 
 
